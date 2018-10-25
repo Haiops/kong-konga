@@ -1,0 +1,102 @@
+										                    安装API网关相关步骤
+
+安装数据库！											
+1.https://www.postgresql.org/download/linux/redhat/  【postgresql】
+2.yum install https://download.postgresql.org/pub/repos/yum/9.5/redhat/rhel-7-x86_64/pgdg-centos95-9.5-3.noarch.rpm  【源】
+3.yum install postgresql95                           【装】
+4.yum install postgresql95-server				     【装】
+5./usr/pgsql-9.5/bin/postgresql95-setup initdb       【初始化】
+6. systemctl enable postgresql-9.5.service           【系统自动启动】
+7. systemctl start postgresql-9.5.service			 【启动数据库】 
+9.su - postgres                                      【切换用户】
+10.psql -U postgres	
+   CREATE USER kong;								 【创建用户】
+   alter user  kong  with  password 'kong';
+   CREATE DATABASE kong OWNER kong;					 【管理员登录数据库】
+11.\q  --------- exit                                【退出】
+              
+
+
+【安装nodejs && npm】
+1.sudo curl -sL -o /etc/yum.repos.d/khara-nodejs.repo https://copr.fedoraproject.org/coprs/khara/nodejs/repo/epel-7/khara-nodejs-epel-7.repo
+2.sudo yum install -y nodejs nodejs-npm
+
+
+【安装pm2 守护进程】
+1.命令安装：      npm install -g pm2          
+
+
+安装kong
+1.https://getkong.org/install/centos/?_ga=2.58273518.590681825.1527834764-2000107714.1526952749 
+																								【进该网址下载对应系统版本的源！（RPM）kong官方】
+2.sudo yum install epel-release																	【源】	
+3.sudo yum install kong-community-edition-0.13.1.*.noarch.rpm --nogpgcheck						【源】	
+		
+
+5.配置数据库																					【数据库如果连接不上修改 配置文件】
+【vim /var/lib/pgsql/9.5/data/pg_hba.conf】修改如下
+【	database    = postgres              # Determines which of PostgreSQL or Cassandra
+	pg_host     = 127.0.0.1             # The PostgreSQL host to connect to.
+	pg_port     = 5432                  # The port to connect to.
+	pg_user     = kong                  # The username to authenticate if required.
+	pg_password = kong                  # The password to authenticate if required.
+	pg_database = kong                                                           】
+
+6.kong migrations up                           [-c /path/to/kong.conf]							【执行的时候括号里面的不用加】
+7.kong start 																					【启动 kong】
+8.curl -i http://localhost:8001/ 																【web界面直接IP加端口或直接命令】
+
+
+安装！konga   
+																								【git！命令找不到。 直接 yum install -y git  就可以用了	】
+1.git clone https://github.com/pantsel/konga.git                                                【git项目】
+2.ck konga																						【切换konga目录】
+
+4.目录下/config/local_example.js 配置文件复制到local.js进行修改                                 【修改配置文件】
+  修改集成数据库/config/local.js
+  修改connection: process.env.DB_ADAPTER || 'the-name-of-adapter-you-wish-to-use', 				【修改后面直接接数据库名postgres】
+																				
+5.(1)根据需求改config/env/development.js或者config/env/production.js  修改IP  															【修改配置文件】
+  (2)/etc/kong/kong.conf下的conf配置文件改成http访问地址改成0.0.0.0网段
+  (3)修改 connections.js  																		【修改数据库名用户和密码】
+6.修改完以后直接npm start 启动 production && development																	【启动默认！！1337访问或者1338访问】
+7.生产环境下运行npm run production 																【生产环境】
+8.pm2 状态  app.js
+
+
+【【常问问题】】
+访问不到！！！防火墙！！！！
+
+ 出现  Neat! Your account is activated.   （插件问题）+
+【出现Neat! Your account is activated. 还有可能是因为插件的问题  比如：bower启动一下？或者初始化更新一下   可能需要用的链接 https://github.com/mhulse/mhulse.github.io/wiki/Using-npm-to-install-Bower-locally-and-install-dependencies-as-a-run-script】
+ 把konga 关了   pm2 stop  app.js
+ 1. 中插件  重启 pm2 start app.js
+
+1.使用空白页面 Uncaught ReferenceError: angular is not defined
+在某些情况下，运行时npm install，凉亭依赖关系未正确安装。您将需要cd到您的项目的根目录并通过键入来手动安装它们
+
+
+$ npm run bower-deps
+
+另一种空白页面可能是因为你在github官方文档中操作流程没有走完。。。。比如  npm start 。。（1338）
+
+
+2.无法添加/编辑一些插件属性。
+当插件属性是数组时，输入由芯片组件处理。您需要enter在输入每个值后按，以便组件将其分配给数组索引。请参阅问题＃48以供参考。
+
+3.启动应用程序时，数据库迁移不会自动运行。
+参见问题＃40以供参考。
+
+4. EACCES权限被拒绝，mkdir'/ kongadata /'。
+如果您在尝试运行Konga时看到此错误，则意味着konga对其默认数据目录没有写入权限/kongadata。您只需将自己的存储路径定义到一个目录中，Konga将通过env var访问权限STORAGE_PATH。
+
+
+5.本次报错信息【2018/10/16 15:02:19 [error] 27311#0: init_by_lua error: /usr/local/share/lua/5.1/kong/init.lua:group-encryption plugin is in use but not enabled
+stack traceback:
+	[C]: in function 'assert'
+	/usr/local/share/lua/5.1/kong/init.lua:204: in function 'init'
+	init_by_lua:3: in main chunk
+】解决办法 -------模板配置文件  /usr/local/share/lua/5.1/kong/templates/kong_defaults.lua
+修改custom_plugins = 插件目录名
+
+
